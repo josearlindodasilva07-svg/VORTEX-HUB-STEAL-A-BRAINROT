@@ -4635,16 +4635,14 @@ runAutoSnipe = function()
     end
 
     -- ============================================
-    -- PEGA O BRAINROT SELECIONADO NA LISTA DE PRIORIDADES
+    -- PEGA O BRAINROT SELECIONADO
     -- ============================================
     local targetPetData = nil
     
-    -- PRIORIDADE 1: O que está selecionado na lista (Prioridade)
     if SharedState.SelectedPetData and SharedState.SelectedPetData.animalData then
         targetPetData = SharedState.SelectedPetData.animalData
     end
     
-    -- PRIORIDADE 2: Se não tiver selecionado, pega o melhor da lista
     if not targetPetData then
         local cache = SharedState.AllAnimalsCache
         if cache and type(cache) == "table" then
@@ -4680,77 +4678,69 @@ runAutoSnipe = function()
     
     local exactPos = targetPart.Position
     local plotIndex = getClosestBaseIdx(exactPos)
-    local targetBasePos = BASES_LOW[plotIndex]
+    local targetPos = BASES_LOW[plotIndex]
     
     -- EQUIPA CARPETE
-    local carpetName = Config.TpSettings.Tool
+    local carpetName = Config.TpSettings.Tool or "Flying Carpet"
     local carpet = LocalPlayer.Backpack:FindFirstChild(carpetName) or char:FindFirstChild(carpetName)
-    if carpet then hum:EquipTool(carpet) end
+    if carpet then 
+        pcall(function() hum:EquipTool(carpet) end)
+        task.wait(0.1)
+    end
     
     -- ============================================
-    -- FLUTUAÇÃO RÁPIDA (OU ANDAR)
+    -- FLUTUAÇÃO VELOCIDADE MÉDIA
     -- ============================================
     
     local startPos = hrp.Position
-    local targetPos = targetBasePos
-    local flyHeight = 6
-    local flyDuration = 1.2
+    local flyHeight = 5
+    local steps = 20
     
     local originalCollide = hrp.CanCollide
     hrp.CanCollide = false
     
-    local Controls = getControls()
-    Controls:Disable()
-    
     local originalSpeed = hum.WalkSpeed
-    hum.WalkSpeed = 60
+    hum.WalkSpeed = 45
     
     -- SOBE
-    local riseDuration = 0.3
-    local riseStart = tick()
-    while tick() - riseStart < riseDuration do
-        local alpha = (tick() - riseStart) / riseDuration
-        local newY = startPos.Y + (flyHeight * alpha)
-        local newPos = Vector3.new(startPos.X, newY, startPos.Z)
-        hrp.CFrame = CFrame.new(newPos)
-        task.wait()
+    for i = 1, 6 do
+        local newY = startPos.Y + (flyHeight * (i/6))
+        hrp.CFrame = CFrame.new(hrp.Position.X, newY, hrp.Position.Z)
+        task.wait(0.04)
     end
     
-    -- FLUTUA
-    local flyStart = tick()
-    while tick() - flyStart < flyDuration do
-        local alpha = (tick() - flyStart) / flyDuration
-        
+    -- VAI PARA O ALVO
+    for i = 1, steps do
+        local alpha = i / steps
         local newX = startPos.X + ((targetPos.X - startPos.X) * alpha)
         local newZ = startPos.Z + ((targetPos.Z - startPos.Z) * alpha)
         
         local newY
-        if alpha < 0.7 then
+        if alpha < 0.6 then
             newY = startPos.Y + flyHeight
         else
-            local descendAlpha = (alpha - 0.7) / 0.3
-            newY = (startPos.Y + flyHeight) - (flyHeight * descendAlpha)
+            local descendAlpha = (alpha - 0.6) / 0.4
+            newY = startPos.Y + flyHeight - (flyHeight * descendAlpha)
         end
         
-        local newPos = Vector3.new(newX, newY, newZ)
-        hrp.CFrame = CFrame.new(newPos)
-        task.wait()
+        hrp.CFrame = CFrame.new(newX, newY, newZ)
+        task.wait(0.045)
     end
     
     hrp.CFrame = CFrame.new(targetPos)
-    hum:Move(Vector3.zero, false)
+    task.wait(0.05)
     
     hrp.CanCollide = originalCollide
     hum.WalkSpeed = originalSpeed
-    Controls:Enable()
     
-    -- Mostra qual brainrot foi selecionado
     local petName = targetPetData.name or "Unknown"
     ShowNotification("TP", "Indo para: " .. petName)
     
     State.isTpMoving = false
     isTpMoving = State.isTpMoving
 end
+
+_G.runAutoSnipe = runAutoSnipe
 
 local function executeReset()
     local character = LocalPlayer.Character
