@@ -3970,6 +3970,11 @@ if IS_MOBILE then
         self.TextColor3 = carpetSpeedEnabled and Theme.Success or Theme.TextPrimary
         ShowNotification("MOBILE", carpetSpeedEnabled and "Speed ON" or "Speed OFF")
     end)
+    
+    createMobBtn("KICK", Theme.Error, 6, function()
+    kickSelf()
+    ShowNotification("KICK", "Você kickou!")
+end)
 
     createMobBtn("UI", Color3.fromRGB(255, 255, 255), 5, function()
         local asUI = PlayerGui:FindFirstChild("AutoStealUI")
