@@ -1568,6 +1568,8 @@ task.spawn(function()
         elseif mutationName == "Diamond" then f = "<font color='rgb(0,255,255)'>Diamond</font>"
         elseif mutationName == "YinYang" then f = "<font color='rgb(255,255,255)'>Yin</font><font color='rgb(0,0,0)'>Yang</font>"
         elseif mutationName == "Candy" then f = "<font color='rgb(255,105,180)'>Candy</font>"
+        elseif mutationName == "Cyber" then f = "<font color='rgb(0,255,255)'>Cyber</font>"
+        elseif mutationName == "Phantom" then f = "<font color='rgb(0,0,0)'>Phantom</font>"
         elseif mutationName == "Divine" then f = "<font color='rgb(255,255,255)'>Divine</font>"
         elseif mutationName == "Rainbow" then
             local cols = {"rgb(255,0,0)","rgb(255,127,0)","rgb(255,255,0)","rgb(0,255,0)","rgb(0,0,255)","rgb(75,0,130)","rgb(148,0,211)"}
