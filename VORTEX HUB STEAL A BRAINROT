@@ -3536,9 +3536,6 @@ runAutoSnipe = function()
         end
     end
 
-    -- ============================================
-    -- PEGA O BRAINROT SELECIONADO
-    -- ============================================
     local targetPetData = nil
     
     if SharedState.SelectedPetData and SharedState.SelectedPetData.animalData then
@@ -3578,71 +3575,86 @@ runAutoSnipe = function()
         return 
     end
     
-    local exactPos = targetPart.Position
-    local plotIndex = getClosestBaseIdx(exactPos)
-    local targetPos = BASES_LOW[plotIndex]
+    local brainrotY = targetPart.Position.Y
+    local plotName = targetPetData.plot
+    local plots = Workspace:FindFirstChild("Plots")
+    local plot = plots and plots:FindFirstChild(plotName)
     
-    -- EQUIPA CARPETE
+    local targetPos
+    if plot then
+        local plotSign = plot:FindFirstChild("PlotSign")
+        local signPos
+        
+        if plotSign then
+            if plotSign:IsA("BasePart") then
+                signPos = plotSign.Position
+            elseif plotSign:IsA("Model") then
+                local part = plotSign:FindFirstChildWhichIsA("BasePart", true)
+                if part then signPos = part.Position end
+            end
+        end
+        
+        if signPos then
+            targetPos = Vector3.new(signPos.X, brainrotY + 2, signPos.Z)
+        else
+            local plotCenter = plot:GetPivot().Position
+            targetPos = Vector3.new(plotCenter.X, brainrotY + 2, plotCenter.Z)
+        end
+    else
+        targetPos = targetPart.Position + Vector3.new(0, 2, 0)
+    end
+    
+    local dirToBase = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Unit
+    targetPos = targetPos - dirToBase * 0.2
+    
     local carpetName = Config.TpSettings.Tool or "Flying Carpet"
     local carpet = LocalPlayer.Backpack:FindFirstChild(carpetName) or char:FindFirstChild(carpetName)
     if carpet then 
         pcall(function() hum:EquipTool(carpet) end)
-        task.wait(0.1)
+        task.wait(0.05)
     end
-    
-    -- ============================================
-    -- FLUTUAÇÃO VELOCIDADE MÉDIA
-    -- ============================================
-    
-    local startPos = hrp.Position
-    local flyHeight = 5
-    local steps = 20
     
     local originalCollide = hrp.CanCollide
     hrp.CanCollide = false
     
     local originalSpeed = hum.WalkSpeed
-    hum.WalkSpeed = 45
+    hum.WalkSpeed = 20  -- AUMENTEI
+
+    local startPos = hrp.Position
+    local distance = (targetPos - startPos).Magnitude
+    local speed = 35  -- AUMENTEI
+    local steps = math.max(20, math.floor(distance / 3))
+    local delay = 0.04  -- AUMENTEI
     
-    -- SOBE
-    for i = 1, 6 do
-        local newY = startPos.Y + (flyHeight * (i/6))
-        hrp.CFrame = CFrame.new(hrp.Position.X, newY, hrp.Position.Z)
-        task.wait(0.04)
-    end
-    
-    -- VAI PARA O ALVO
     for i = 1, steps do
         local alpha = i / steps
+        
         local newX = startPos.X + ((targetPos.X - startPos.X) * alpha)
         local newZ = startPos.Z + ((targetPos.Z - startPos.Z) * alpha)
+        local newY = startPos.Y + ((targetPos.Y - startPos.Y) * alpha)
         
-        local newY
-        if alpha < 0.6 then
-            newY = startPos.Y + flyHeight
-        else
-            local descendAlpha = (alpha - 0.6) / 0.4
-            newY = startPos.Y + flyHeight - (flyHeight * descendAlpha)
-        end
+        local velX = (newX - hrp.Position.X) / delay
+        local velY = (newY - hrp.Position.Y) / delay
+        local velZ = (newZ - hrp.Position.Z) / delay
         
-        hrp.CFrame = CFrame.new(newX, newY, newZ)
-        task.wait(0.045)
+        hrp.AssemblyLinearVelocity = Vector3.new(velX, velY, velZ)
+        task.wait(delay)
     end
     
+    hrp.AssemblyLinearVelocity = Vector3.zero
     hrp.CFrame = CFrame.new(targetPos)
     task.wait(0.05)
     
     hrp.CanCollide = originalCollide
     hum.WalkSpeed = originalSpeed
     
-    local petName = targetPetData.name or "Unknown"
-    ShowNotification("TP", "Indo para: " .. petName)
+    ShowNotification("TP", "Chegou na base!")
+    instantClone()
+    while _G.isCloning do task.wait() end
     
     State.isTpMoving = false
     isTpMoving = State.isTpMoving
 end
-
-_G.runAutoSnipe = runAutoSnipe
 
 local function executeReset()
     local character = LocalPlayer.Character
