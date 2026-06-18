@@ -3649,8 +3649,44 @@ runAutoSnipe = function()
     hum.WalkSpeed = originalSpeed
     
     ShowNotification("TP", "Chegou na base!")
-    instantClone()
-    while _G.isCloning do task.wait() end
+
+walkForward(0.5)
+task.wait(0.5)
+
+local startPos = hrp.Position
+local targetPos = targetPart.Position + Vector3.new(0, 2, 0)
+
+local distance = (targetPos - startPos).Magnitude
+local steps = math.max(20, math.floor(distance / 3))
+local delay = 0.04
+
+-- TODOS OS ANDARES USAM CLONE
+instantClone()
+while _G.isCloning do
+    task.wait()
+end
+
+-- MOVIMENTO FINAL
+for i = 1, steps do
+    local alpha = i / steps
+
+    local newX = startPos.X + ((targetPos.X - startPos.X) * alpha)
+    local newZ = startPos.Z + ((targetPos.Z - startPos.Z) * alpha)
+    local newY = startPos.Y + ((targetPos.Y - startPos.Y) * alpha)
+
+    local velX = (newX - hrp.Position.X) / delay
+    local velY = (newY - hrp.Position.Y) / delay
+    local velZ = (newZ - hrp.Position.Z) / delay
+
+    hrp.AssemblyLinearVelocity = Vector3.new(velX, velY, velZ)
+    task.wait(delay)
+end
+
+hrp.AssemblyLinearVelocity = Vector3.zero
+hrp.CFrame = CFrame.new(targetPos)
+
+State.isTpMoving = false
+isTpMoving = State.isTpMoving
     
     State.isTpMoving = false
     isTpMoving = State.isTpMoving
@@ -3972,11 +4008,6 @@ if IS_MOBILE then
         ShowNotification("MOBILE", "Teleporting...")
     end)
 
-    createMobBtn("CL", Theme.Accent2, 2, function()
-        instantClone()
-        ShowNotification("MOBILE", "Cloning...")
-    end)
-
     createMobBtn("SP", Theme.Success, 3, function(self)
         carpetSpeedEnabled = not carpetSpeedEnabled
         setCarpetSpeed(carpetSpeedEnabled)
@@ -3987,6 +4018,69 @@ if IS_MOBILE then
     createMobBtn("KICK", Theme.Error, 6, function()
     kickSelf()
     ShowNotification("KICK", "Você kickou!")
+end)
+
+    createMobBtn("brainrot", Theme.Accent1, 7, function()
+    if not SharedState.SelectedPetData then
+        ShowNotification("TP", "Selecione um brainrot na lista!")
+        return
+    end
+    
+    local targetPetData = SharedState.SelectedPetData.animalData
+    if not targetPetData then
+        ShowNotification("TP", "Brainrot inválido!")
+        return
+    end
+    
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    
+    if not hrp or not hum then
+        ShowNotification("TP", "Personagem não encontrado!")
+        return
+    end
+    
+    local targetPart = findAdorneeGlobal(targetPetData)
+    if not targetPart then
+        ShowNotification("TP", "Brainrot não encontrado!")
+        return
+    end
+    
+    -- EQUIPA A FERRAMENTA (opcional)
+    local carpetName = Config.TpSettings.Tool or "Flying Carpet"
+    local carpet = LocalPlayer.Backpack:FindFirstChild(carpetName) or char:FindFirstChild(carpetName)
+    if carpet then 
+        pcall(function() hum:EquipTool(carpet) end)
+        task.wait(0.05)
+    end
+    
+    -- FLUTUA DIRETO ATÉ O BRAINROT (SEM BASE, SEM CLONE)
+    local startPos = hrp.Position
+    local targetPos = targetPart.Position + Vector3.new(0, 2, 0)
+    local distance = (targetPos - startPos).Magnitude
+    local steps = math.max(20, math.floor(distance / 3))
+    local delay = 0.04
+    
+    for i = 1, steps do
+        local alpha = i / steps
+        
+        local newX = startPos.X + ((targetPos.X - startPos.X) * alpha)
+        local newZ = startPos.Z + ((targetPos.Z - startPos.Z) * alpha)
+        local newY = startPos.Y + ((targetPos.Y - startPos.Y) * alpha)
+        
+        local velX = (newX - hrp.Position.X) / delay
+        local velY = (newY - hrp.Position.Y) / delay
+        local velZ = (newZ - hrp.Position.Z) / delay
+        
+        hrp.AssemblyLinearVelocity = Vector3.new(velX, velY, velZ)
+        task.wait(delay)
+    end
+    
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.CFrame = CFrame.new(targetPos)
+    
+    ShowNotification("TP", "Chegou no brainrot!")
 end)
 
     createMobBtn("UI", Color3.fromRGB(255, 255, 255), 5, function()
