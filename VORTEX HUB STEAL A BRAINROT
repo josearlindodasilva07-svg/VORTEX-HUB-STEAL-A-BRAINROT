@@ -283,23 +283,20 @@ if isfile and isfile(FileName) then
     pcall(function()
         local ok, decoded = pcall(function() return HttpService:JSONDecode(readfile(FileName)) end)
         if not ok then return end
-        
-        for k, v in pairs(decoded) do
-            if type(v) == "table" and type(DefaultConfig[k]) == "table" then
-                for subK, subV in pairs(v) do
-                    if subV ~= nil then
-                        if Config[k] == nil then Config[k] = {} end
-                        Config[k][subK] = subV
-                    end
-                end
-            else
-                Config[k] = v
+        for k, v in pairs(DefaultConfig) do
+            if decoded[k] == nil then decoded[k] = v end
+        end
+        if decoded.TpSettings then
+            for k, v in pairs(DefaultConfig.TpSettings) do
+                if decoded.TpSettings[k] == nil then decoded.TpSettings[k] = v end
             end
         end
-        
         if decoded.Positions then
-            Config.Positions = decoded.Positions
+            for k, v in pairs(DefaultConfig.Positions) do
+                if decoded.Positions[k] == nil then decoded.Positions[k] = v end
+            end
         end
+        Config = decoded
     end)
 end
 Config.ProximityAP = false
