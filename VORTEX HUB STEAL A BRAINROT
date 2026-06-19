@@ -4766,12 +4766,196 @@ CreateToggleSwitch(rAntiBeeDisco, Config.AntiBeeDisco, function(ns, set)
     ShowNotification("ANTI-BEE & DISCO", ns and "ENABLED" or "DISABLED")
 end)
 
-local rAutoDestroyTurrets = CreateRow("Auto-Destroy Turrets")
-local autoDestroyTurretsToggleSwitch = CreateToggleSwitch(rAutoDestroyTurrets, Config.AutoDestroyTurrets, function(ns, set)
-    set(ns); Config.AutoDestroyTurrets = ns; SaveConfig()
-    ShowNotification("AUTO-DESTROY TURRETS", ns and "ENABLED" or "DISABLED")
-end)
-SharedState.SettingsAutoDestroyTurretsSet = autoDestroyTurretsToggleSwitch.Set
+do
+    local autoTurretEnabled = false
+    local turretConns = {}
+    local turretLoopRunning = false
+    local turretAttackBusy = setmetatable({}, { __mode = "k" })
+    local turretAttackQueued = setmetatable({}, { __mode = "k" })
+    local turretAttackCD = setmetatable({}, { __mode = "k" })
+    local turretAttackActive = false
+    local RETRY_DELAY = 0.3
+    local lp = Players.LocalPlayer
+
+    local function isEnemyTurret(obj)
+        if not obj or not obj:IsA("BasePart") then return false end
+        local ownerId = obj.Name:match("^Sentry_(%d+)$")
+        return ownerId ~= nil and ownerId ~= tostring(lp.UserId)
+    end
+
+    local function setTurretNoClip(turret)
+        if isEnemyTurret(turret) then
+            pcall(function()
+                turret.CanCollide = false
+            end)
+        end
+    end
+
+    local function getTurretTimeLabel(turret)
+        local sf = turret and turret:FindFirstChild("SetupFrame")
+        local mf = sf and sf:FindFirstChild("MainFrame")
+        local lbl = mf and mf:FindFirstChild("Time")
+        if lbl and lbl:IsA("TextLabel") then
+            return lbl
+        end
+    end
+
+    local function shouldAttackTurret(turret)
+        if lp:GetAttribute("Stealing") ~= nil then return false end
+        if not isEnemyTurret(turret) then return false end
+
+        local lbl = getTurretTimeLabel(turret)
+        if not lbl then return false end
+
+        local text = tostring(lbl.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        return text ~= "" and text:match("^%d+s!$")
+    end
+
+    local function bringTurretInFront(turret, hrp)
+        local fwd = hrp.CFrame.LookVector
+        local pos = hrp.Position + fwd * 4 + Vector3.new(0, 1.2, 0)
+        local cf = CFrame.lookAt(pos, pos + fwd)
+
+        pcall(function()
+            turret.AssemblyLinearVelocity = Vector3.zero
+            turret.AssemblyAngularVelocity = Vector3.zero
+            turret.CFrame = cf
+        end)
+    end
+
+    local function attackTurret(turret)
+        if not autoTurretEnabled then return end
+        if turretAttackBusy[turret] or turretAttackQueued[turret] or turretAttackActive then return end
+        if (turretAttackCD[turret] or 0) > os.clock() then return end
+        if not shouldAttackTurret(turret) then return end
+
+        turretAttackQueued[turret] = true
+        turretAttackCD[turret] = os.clock() + RETRY_DELAY
+
+        task.spawn(function()
+            turretAttackQueued[turret] = nil
+            turretAttackBusy[turret] = true
+            turretAttackActive = true
+
+            for _ = 1, 12 do
+                if not autoTurretEnabled then break end
+                if not turret or not turret.Parent then break end
+                if not shouldAttackTurret(turret) then break end
+
+                local char = lp.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if not hrp or not hum or hum.Health <= 0 then break end
+
+                if (turret.Position - hrp.Position).Magnitude > 220 then break end
+
+                setTurretNoClip(turret)
+                bringTurretInFront(turret, hrp)
+
+                local bp = lp:FindFirstChild("Backpack")
+                local bat = char:FindFirstChild("Bat") or (bp and bp:FindFirstChild("Bat"))
+
+                if bat and bat.Parent ~= char then
+                    pcall(function()
+                        hum:EquipTool(bat)
+                    end)
+                end
+
+                bat = char:FindFirstChild("Bat") or bat
+                if bat then
+                    pcall(function()
+                        bat:Activate()
+                    end)
+                end
+
+                task.wait(0.1)
+            end
+
+            turretAttackBusy[turret] = nil
+            turretAttackActive = false
+        end)
+    end
+
+    local function disconnectAll()
+        for _, c in ipairs(turretConns) do
+            pcall(function()
+                c:Disconnect()
+            end)
+        end
+        turretConns = {}
+    end
+
+    local function startAutoTurret()
+        if turretLoopRunning then return end
+        turretLoopRunning = true
+
+        disconnectAll()
+
+        table.insert(turretConns, Workspace.DescendantAdded:Connect(function(obj)
+            if not autoTurretEnabled then return end
+            if isEnemyTurret(obj) then setTurretNoClip(obj) end
+            if shouldAttackTurret(obj) then
+                task.defer(attackTurret, obj)
+            end
+        end))
+
+        task.spawn(function()
+            while autoTurretEnabled do
+                task.wait(0.4)
+
+                for _, obj in ipairs(Workspace:GetChildren()) do
+                    if not autoTurretEnabled then break end
+                    if isEnemyTurret(obj) then setTurretNoClip(obj) end
+                    if shouldAttackTurret(obj) then
+                        attackTurret(obj)
+                    end
+                end
+            end
+
+            turretLoopRunning = false
+        end)
+    end
+
+    local function stopAutoTurret()
+        autoTurretEnabled = false
+        turretLoopRunning = false
+        disconnectAll()
+    end
+
+    local function onToggleChanged(state)
+        autoTurretEnabled = state
+        Config.AutoDestroyTurrets = state
+        SaveConfig()
+
+        if state then
+            startAutoTurret()
+            ShowNotification("AUTO-DESTROY TURRETS", "ATIVADO")
+        else
+            stopAutoTurret()
+            ShowNotification("AUTO-DESTROY TURRETS", "DESATIVADO")
+        end
+    end
+
+    if SharedState.SettingsAutoDestroyTurretsSet then
+        local originalSet = SharedState.SettingsAutoDestroyTurretsSet
+        SharedState.SettingsAutoDestroyTurretsSet = function(state)
+            onToggleChanged(state)
+            if originalSet then originalSet(state) end
+        end
+    end
+
+    local function initAutoTurret()
+        autoTurretEnabled = Config.AutoDestroyTurrets == true
+
+        if autoTurretEnabled then
+            task.wait(1)
+            startAutoTurret()
+            ShowNotification("AUTO-DESTROY TURRETS", "INICIADO AUTOMÁTICO")
+        end
+    end
+
+    task.spawn(initAutoTurret)
+end
 
 CreateSectionHeader("CAMERA")
 local rFOV = CreateRow("FOV")
