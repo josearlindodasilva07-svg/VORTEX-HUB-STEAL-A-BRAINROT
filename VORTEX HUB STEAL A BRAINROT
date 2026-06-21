@@ -3622,9 +3622,9 @@ runAutoSnipe = function()
 
     local startPos = hrp.Position
     local distance = (targetPos - startPos).Magnitude
-    local speed = 35  -- AUMENTEI
+    local speed = 55  -- AUMENTEI
     local steps = math.max(20, math.floor(distance / 3))
-    local delay = 0.04  -- AUMENTEI
+    local delay = 0.015  -- AUMENTEI
     
     for i = 1, steps do
         local alpha = i / steps
