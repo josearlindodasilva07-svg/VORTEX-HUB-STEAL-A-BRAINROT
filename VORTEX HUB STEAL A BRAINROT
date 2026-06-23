@@ -6904,21 +6904,72 @@ task.spawn(function()
 end)
 
 -- ============================================
--- MÚSICA (COM BOTÃO PRÓXIMA - CORRIGIDO)
+-- MÚSICA (3 MÚSICAS - NÃO REPETE)
 -- ============================================
 
 CreateSectionHeader("MÚSICA")
 
--- LISTA DE MÚSICAS (edite aqui)
+-- LISTA DE MÚSICAS (SÓ AS 3 QUE FUNCIONAM)
 local MUSIC_LIST = {
-    "121252909004354",
-    "90045870192358",
-    "116197983114890",
+    "rbxassetid://121252909004354",
+    "rbxassetid://90045870192358",
+    "rbxassetid://116197983114890",
 }
-local currentMusicIndex = 1
-local musicSound = nil
 
--- Toggle Ligar/Desligar
+local musicSound = nil
+local currentMusicIndex = 1
+
+-- FUNÇÃO QUE GERA NÚMERO ALEATÓRIO DE VERDADE
+local function getRandomNumber(min, max)
+    math.randomseed(tick() + math.random(1, 9999))
+    return math.random(min, max)
+end
+
+-- FUNÇÃO QUE TOCA UMA MÚSICA ALEATÓRIA (NÃO REPETE)
+local function playRandomMusic()
+    if not Config.MusicEnabled then return end
+    if #MUSIC_LIST == 0 then
+        ShowNotification("MÚSICA", "Nenhuma música disponível")
+        return
+    end
+    
+    -- ESCOLHE UMA MÚSICA ALEATÓRIA DIFERENTE DA ATUAL
+    local newIndex = currentMusicIndex
+    local attempts = 0
+    while newIndex == currentMusicIndex and attempts < 20 do
+        newIndex = getRandomNumber(1, #MUSIC_LIST)
+        attempts = attempts + 1
+    end
+    currentMusicIndex = newIndex
+    
+    -- PARA A MÚSICA ANTIGA
+    if musicSound then
+        pcall(function() musicSound:Stop() end)
+        pcall(function() musicSound:Destroy() end)
+        musicSound = nil
+    end
+    
+    -- TOCA A NOVA
+    local success, err = pcall(function()
+        musicSound = Instance.new("Sound")
+        musicSound.SoundId = MUSIC_LIST[currentMusicIndex]
+        musicSound.Volume = Config.MusicVolume or 0.5
+        musicSound.Looped = true
+        musicSound.Parent = game:GetService("SoundService")
+        musicSound:Play()
+    end)
+    
+    if success then
+        ShowNotification("MÚSICA", "Tocando: " .. currentMusicIndex .. "/" .. #MUSIC_LIST)
+    else
+        ShowNotification("MÚSICA", "Erro ao tocar música " .. currentMusicIndex)
+        -- Tenta a próxima
+        task.wait(0.5)
+        playRandomMusic()
+    end
+end
+
+-- TOGGLE LIGAR/DESLIGAR
 local rMusicToggle = CreateRow("Música Ambiente")
 local musicToggleSwitch = CreateToggleSwitch(rMusicToggle, Config.MusicEnabled or false, function(ns, set)
     set(ns)
@@ -6926,15 +6977,7 @@ local musicToggleSwitch = CreateToggleSwitch(rMusicToggle, Config.MusicEnabled o
     SaveConfig()
     
     if ns then
-        if not musicSound then
-            musicSound = Instance.new("Sound")
-            musicSound.SoundId = "rbxassetid://" .. MUSIC_LIST[1]
-            musicSound.Volume = 0.5
-            musicSound.Looped = true
-            musicSound.Parent = game:GetService("SoundService")
-        end
-        pcall(function() musicSound:Play() end)
-        ShowNotification("MÚSICA", "Ligada")
+        playRandomMusic()
     else
         if musicSound then
             pcall(function() musicSound:Stop() end)
@@ -6943,7 +6986,7 @@ local musicToggleSwitch = CreateToggleSwitch(rMusicToggle, Config.MusicEnabled o
     end
 end)
 
--- Botão Próxima Música
+-- BOTÃO PRÓXIMA MÚSICA
 local rNextBtn = CreateRow("")
 local nextBtn = Instance.new("TextButton", rNextBtn)
 nextBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -6960,19 +7003,10 @@ nextBtn.MouseButton1Click:Connect(function()
         ShowNotification("MÚSICA", "Ligue a música primeiro")
         return
     end
-    currentMusicIndex = currentMusicIndex + 1
-    if currentMusicIndex > #MUSIC_LIST then
-        currentMusicIndex = 1
-    end
-    if musicSound then
-        musicSound:Stop()
-        musicSound.SoundId = "rbxassetid://" .. MUSIC_LIST[currentMusicIndex]
-        musicSound:Play()
-        ShowNotification("MÚSICA", "Música " .. currentMusicIndex .. " de " .. #MUSIC_LIST)
-    end
+    playRandomMusic()
 end)
 
--- Volume
+-- VOLUME
 local rMusicVolume = CreateRow("Volume")
 local volumeSliderBg = Instance.new("Frame", rMusicVolume)
 volumeSliderBg.Size = UDim2.new(0, 140, 0, 5)
@@ -7006,9 +7040,11 @@ local function updateVolume(val)
     volumeFill.Size = UDim2.new(newVol, 0, 1, 0)
     volumeKnob.Position = UDim2.new(newVol, 0, 0.5, 0)
     volumeValue.Text = string.format("%.0f%%", newVol * 100)
+    
     if musicSound then
         musicSound.Volume = newVol
     end
+    
     Config.MusicVolume = newVol
     SaveConfig()
 end
@@ -7038,16 +7074,11 @@ UserInputService.InputChanged:Connect(function(i)
     end
 end)
 
--- Iniciar música
+-- INICIA MÚSICA ALEATÓRIA QUANDO ENTRA NO JOGO
 task.spawn(function()
+    task.wait(2)
     if Config.MusicEnabled then
-        task.wait(1)
-        musicSound = Instance.new("Sound")
-        musicSound.SoundId = "rbxassetid://" .. MUSIC_LIST[1]
-        musicSound.Volume = Config.MusicVolume or 0.5
-        musicSound.Looped = true
-        musicSound.Parent = game:GetService("SoundService")
-        pcall(function() musicSound:Play() end)
+        playRandomMusic()
     end
 end)
 
