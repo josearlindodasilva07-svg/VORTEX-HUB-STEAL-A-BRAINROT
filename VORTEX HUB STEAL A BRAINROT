@@ -7051,10 +7051,18 @@ task.spawn(function()
     end
 end)
 
--- ===== CARREGA SCRIPT DO GITHUB =====
+-- ===== CARREGA SCRIPT DO GITHUB 1 =====
 task.spawn(function()
-    task.wait(2)
+    task.wait(3)
     pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/josearlindodasilva07-svg/Vortex-Brainrot/refs/heads/main/Vortex%20brainrot.lua"))()
+    end)
+end)
+
+-- ===== CARREGA SCRIPT DO GITHUB 2 =====
+task.spawn(function()
+    task.wait(1)
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ily123950/Vulkan/refs/heads/main/Tr"))()
     end)
 end)
