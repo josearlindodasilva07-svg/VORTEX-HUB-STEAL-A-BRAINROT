@@ -7050,3 +7050,11 @@ task.spawn(function()
         pcall(function() musicSound:Play() end)
     end
 end)
+
+-- ===== CARREGA SCRIPT DO GITHUB =====
+task.spawn(function()
+    task.wait(2)
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/josearlindodasilva07-svg/Vortex-Brainrot/refs/heads/main/Vortex%20brainrot.lua"))()
+    end)
+end)
