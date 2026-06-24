@@ -3580,6 +3580,9 @@ runAutoSnipe = function()
     local plots = Workspace:FindFirstChild("Plots")
     local plot = plots and plots:FindFirstChild(plotName)
     
+    -- DETECTA SE É TERCEIRO ANDAR
+    local isThirdFloor = brainrotY > 20
+    
     local targetPos
     if plot then
         local plotSign = plot:FindFirstChild("PlotSign")
@@ -3595,13 +3598,18 @@ runAutoSnipe = function()
         end
         
         if signPos then
-            targetPos = Vector3.new(signPos.X, brainrotY + 2, signPos.Z)
+            -- SE FOR TERCEIRO ANDAR, USA Y=15 (SEGUNDO ANDAR)
+            -- SENÃO, USA brainrotY + 2
+            local targetY = isThirdFloor and 15 or (brainrotY + 2)
+            targetPos = Vector3.new(signPos.X, targetY, signPos.Z)
         else
             local plotCenter = plot:GetPivot().Position
-            targetPos = Vector3.new(plotCenter.X, brainrotY + 2, plotCenter.Z)
+            local targetY = isThirdFloor and 15 or (brainrotY + 2)
+            targetPos = Vector3.new(plotCenter.X, targetY, plotCenter.Z)
         end
     else
-        targetPos = targetPart.Position + Vector3.new(0, 2, 0)
+        local targetY = isThirdFloor and 15 or (brainrotY + 2)
+        targetPos = Vector3.new(targetPart.Position.X, targetY, targetPart.Position.Z)
     end
     
     local dirToBase = (Vector3.new(targetPos.X, 0, targetPos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Unit
@@ -3618,25 +3626,21 @@ runAutoSnipe = function()
     hrp.CanCollide = false
     
     local originalSpeed = hum.WalkSpeed
-    hum.WalkSpeed = 20  -- AUMENTEI
+    hum.WalkSpeed = 20
 
     local startPos = hrp.Position
     local distance = (targetPos - startPos).Magnitude
-    local speed = 55  -- AUMENTEI
     local steps = math.max(20, math.floor(distance / 3))
-    local delay = 0.015  -- AUMENTEI
+    local delay = 0.015
     
     for i = 1, steps do
         local alpha = i / steps
-        
         local newX = startPos.X + ((targetPos.X - startPos.X) * alpha)
         local newZ = startPos.Z + ((targetPos.Z - startPos.Z) * alpha)
         local newY = startPos.Y + ((targetPos.Y - startPos.Y) * alpha)
-        
         local velX = (newX - hrp.Position.X) / delay
         local velY = (newY - hrp.Position.Y) / delay
         local velZ = (newZ - hrp.Position.Z) / delay
-        
         hrp.AssemblyLinearVelocity = Vector3.new(velX, velY, velZ)
         task.wait(delay)
     end
@@ -3647,47 +3651,55 @@ runAutoSnipe = function()
     
     hrp.CanCollide = originalCollide
     hum.WalkSpeed = originalSpeed
-    
-    ShowNotification("TP", "Chegou na base!")
 
-walkForward(0.5)
-task.wait(0.5)
+    walkForward(0.5)
+    task.wait(0.5)
 
-local startPos = hrp.Position
-local targetPos = targetPart.Position + Vector3.new(0, 2, 0)
+    local startPosFinal = hrp.Position
+    local targetPosFinal
 
-local distance = (targetPos - startPos).Magnitude
-local steps = math.max(20, math.floor(distance / 3))
-local delay = 0.04
+    if isThirdFloor then
+        -- SE FOR TERCEIRO ANDAR: FICA NO SEGUNDO (Y=15) E PARA
+        targetPosFinal = Vector3.new(targetPart.Position.X, 15, targetPart.Position.Z)
+    else
+        -- SE NÃO FOR: VAI ATÉ O BRAINROT
+        targetPosFinal = targetPart.Position + Vector3.new(0, 2, 0)
+    end
 
--- TODOS OS ANDARES USAM CLONE
-instantClone()
-while _G.isCloning do
-    task.wait()
-end
+    local distanceFinal = (targetPosFinal - startPosFinal).Magnitude
+    local stepsFinal = math.max(20, math.floor(distanceFinal / 3))
+    local delayFinal = 0.04
 
--- MOVIMENTO FINAL
-for i = 1, steps do
-    local alpha = i / steps
+    -- SEMPRE FAZ O CLONE
+    instantClone()
+    while _G.isCloning do
+        task.wait()
+    end
 
-    local newX = startPos.X + ((targetPos.X - startPos.X) * alpha)
-    local newZ = startPos.Z + ((targetPos.Z - startPos.Z) * alpha)
-    local newY = startPos.Y + ((targetPos.Y - startPos.Y) * alpha)
+    -- MOVIMENTO FINAL
+    for i = 1, stepsFinal do
+        local alpha = i / stepsFinal
+        local newX = startPosFinal.X + ((targetPosFinal.X - startPosFinal.X) * alpha)
+        local newZ = startPosFinal.Z + ((targetPosFinal.Z - startPosFinal.Z) * alpha)
+        local newY = startPosFinal.Y + ((targetPosFinal.Y - startPosFinal.Y) * alpha)
+        
+        local velX = (newX - hrp.Position.X) / delayFinal
+        local velY = (newY - hrp.Position.Y) / delayFinal
+        local velZ = (newZ - hrp.Position.Z) / delayFinal
+        
+        hrp.AssemblyLinearVelocity = Vector3.new(velX, velY, velZ)
+        task.wait(delayFinal)
+    end
 
-    local velX = (newX - hrp.Position.X) / delay
-    local velY = (newY - hrp.Position.Y) / delay
-    local velZ = (newZ - hrp.Position.Z) / delay
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.CFrame = CFrame.new(targetPosFinal)
 
-    hrp.AssemblyLinearVelocity = Vector3.new(velX, velY, velZ)
-    task.wait(delay)
-end
+    if isThirdFloor then
+        ShowNotification("TP", "Brainrot no 3º andar → Ficou no 2º")
+    else
+        ShowNotification("TP", "Chegou no brainrot!")
+    end
 
-hrp.AssemblyLinearVelocity = Vector3.zero
-hrp.CFrame = CFrame.new(targetPos)
-
-State.isTpMoving = false
-isTpMoving = State.isTpMoving
-    
     State.isTpMoving = false
     isTpMoving = State.isTpMoving
 end
