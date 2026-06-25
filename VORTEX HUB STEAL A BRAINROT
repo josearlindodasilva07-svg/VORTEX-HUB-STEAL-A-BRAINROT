@@ -1466,65 +1466,20 @@ task.spawn(function()
 
     local autoStealEnabled   = true
     
-    
-    if Config.DefaultToPriority and Config.DefaultToHighest then
-        Config.DefaultToHighest = false
-    end
-    if Config.DefaultToPriority and Config.DefaultToNearest then
-        Config.DefaultToNearest = false
-    end
-    if Config.DefaultToHighest and Config.DefaultToNearest then
-        Config.DefaultToNearest = false
-    end
-    
-    if not Config.DefaultToPriority and not Config.DefaultToHighest and not Config.DefaultToNearest and not Config.DefaultToDisable then
-        Config.DefaultToHighest = true
-    end
+    -- Mantém apenas HIGHEST como padrão
+    Config.DefaultToHighest = true
+    Config.DefaultToNearest = false
+    Config.DefaultToPriority = false
+    Config.DefaultToDisable = false
     
     local stealNearestEnabled = false
-    local stealHighestEnabled = false
+    local stealHighestEnabled = true
     local stealPriorityEnabled = false
     
-    if Config.DefaultToNearest then
-        stealNearestEnabled = true
-        Config.StealNearest = true
-        Config.StealHighest = false
-        Config.StealPriority = false
-        Config.AutoTPPriority = true
-    elseif Config.DefaultToHighest then
-        stealHighestEnabled = true
-        Config.StealHighest = true
-        Config.StealNearest = false
-        Config.StealPriority = false
-        Config.AutoTPPriority = false
-    elseif Config.DefaultToPriority then
-        stealPriorityEnabled = true
-        Config.StealPriority = true
-        Config.StealNearest = false
-        Config.StealHighest = false
-        Config.AutoTPPriority = true
-    elseif Config.DefaultToDisable then
-        -- Disable mode: don't activate any steal mode on load
-        stealNearestEnabled = false
-        stealHighestEnabled = false
-        stealPriorityEnabled = false
-        Config.StealNearest = false
-        Config.StealHighest = false
-        Config.StealPriority = false
-    else
-        stealNearestEnabled = Config.StealNearest
-        stealHighestEnabled = Config.StealHighest
-        stealPriorityEnabled = Config.StealPriority
-        
-        if Config.InstantSteal == nil then Config.InstantSteal = false end
-        if Config.StealPriority then
-            Config.AutoTPPriority = true
-        elseif Config.StealNearest then
-            Config.AutoTPPriority = true
-        elseif Config.StealHighest then
-            Config.AutoTPPriority = false
-        end
-    end
+    Config.StealNearest = false
+    Config.StealHighest = true
+    Config.StealPriority = false
+    Config.AutoTPPriority = false
     
     local instantStealEnabled = true
     local instantStealReady = false
@@ -1579,21 +1534,6 @@ task.spawn(function()
         return "<font weight='800'>"..f.." </font>"
     end
 
-    -- With inline controls hidden, keep auto-steal active by default.
-    if Config.DefaultToDisable then
-        Config.DefaultToDisable = false
-        SaveConfig()
-    end
-
-    -- Safety: if all modes are OFF, fall back to Highest.
-    if not stealNearestEnabled and not stealHighestEnabled and not stealPriorityEnabled then
-        stealHighestEnabled = true
-        Config.StealNearest = false
-        Config.StealHighest = true
-        Config.StealPriority = false
-        SaveConfig()
-    end
-
     local function get_all_pets()
         local out = {}
         for _, a in ipairs(allAnimalsCache) do
@@ -1602,8 +1542,6 @@ task.spawn(function()
                     owner=a.owner, plot=a.plot, slot=a.slot, uid=a.uid, mutation=a.mutation, animalData=a, source="CARPET"})
             end
         end
-        -- also include conveyor brainrots
-        -- (REMOVED: conveyor detection disabled)
         return out
     end
 
@@ -1675,38 +1613,8 @@ task.spawn(function()
         end
     end
 
-    local toggleBtnContainer = Instance.new("Frame", frame)
-    toggleBtnContainer.Size = UDim2.new(1,-30,0,144); toggleBtnContainer.Position = UDim2.new(0,15,1,-154)
-    toggleBtnContainer.BackgroundTransparency = 1
-    toggleBtnContainer.Visible = false
-    
-    local enableBtn = Instance.new("TextButton", toggleBtnContainer)
-    local uiScale = 1
-    enableBtn.Size = UDim2.new(1,0,0,32*uiScale); enableBtn.BackgroundColor3 = Theme.Success
-    enableBtn.Text = "ENABLED"; enableBtn.Font = Enum.Font.GothamBold
-    enableBtn.TextSize = 13*uiScale; enableBtn.TextColor3 = Theme.TextPrimary
-    Instance.new("UICorner", enableBtn).CornerRadius = UDim.new(0, 8)
-    
-    local nearestBtn = Instance.new("TextButton", toggleBtnContainer)
-    nearestBtn.Size = UDim2.new(0.48,0,0,28*uiScale); nearestBtn.Position = UDim2.new(0,0,0,36*uiScale)
-    nearestBtn.BackgroundColor3 = Theme.SurfaceHighlight
-    nearestBtn.Text = "NEAREST"; nearestBtn.Font = Enum.Font.GothamBold
-    nearestBtn.TextSize = 11*uiScale; nearestBtn.TextColor3 = Theme.TextPrimary
-    Instance.new("UICorner", nearestBtn).CornerRadius = UDim.new(0, 6)
-
-    local highestBtn = Instance.new("TextButton", toggleBtnContainer)
-    highestBtn.Size = UDim2.new(0.48,0,0,28*uiScale); highestBtn.Position = UDim2.new(0.52,0,0,36*uiScale)
-    highestBtn.BackgroundColor3 = Theme.SurfaceHighlight
-    highestBtn.Text = "HIGHEST"; highestBtn.Font = Enum.Font.GothamBold
-    highestBtn.TextSize = 11*uiScale; highestBtn.TextColor3 = Theme.TextPrimary
-    Instance.new("UICorner", highestBtn).CornerRadius = UDim.new(0, 6)
-
-    local priorityBtn = Instance.new("TextButton", toggleBtnContainer)
-    priorityBtn.Size = UDim2.new(1,0,0,24*uiScale); priorityBtn.Position = UDim2.new(0,0,0,68*uiScale)
-    priorityBtn.BackgroundColor3 = Theme.SurfaceHighlight
-    priorityBtn.Text = "PRIORITY"; priorityBtn.Font = Enum.Font.GothamBold
-    priorityBtn.TextSize = 11*uiScale; priorityBtn.TextColor3 = Theme.TextPrimary
-    Instance.new("UICorner", priorityBtn).CornerRadius = UDim.new(0, 6)
+    -- REMOVIDO: toggleBtnContainer e todos os botões (NEAREST, HIGHEST, PRIORITY, etc.)
+    -- Apenas mantemos o frame da lista e o header
 
     local function attachPet3DPreview(parentBtn, petData, layoutOpts)
         layoutOpts = layoutOpts or {}
@@ -2374,8 +2282,6 @@ task.spawn(function()
     local function updateUI(enabled, allPets)
         autoStealEnabled = true
         instantStealEnabled = true -- Force always ON (lefa9)
-        enableBtn.Text = "ENABLED"
-        enableBtn.BackgroundColor3 = Theme.Success
 
         listFrame.ScrollBarThickness = 0
         listFrame.ScrollingEnabled = true
@@ -2396,21 +2302,6 @@ task.spawn(function()
             if needsSync then
                 SharedState.ListNeedsRedraw = true
             end
-        end
-        
-        nearestBtn.BackgroundColor3 = stealNearestEnabled and Theme.Accent1 or Theme.SurfaceHighlight
-        nearestBtn.TextColor3 = stealNearestEnabled and Color3.new(0,0,0) or Theme.TextPrimary
-
-        highestBtn.BackgroundColor3 = stealHighestEnabled and Theme.Accent1 or Theme.SurfaceHighlight
-        highestBtn.TextColor3 = stealHighestEnabled and Color3.new(0,0,0) or Theme.TextPrimary
-
-        priorityBtn.BackgroundColor3 = stealPriorityEnabled and Theme.Accent1 or Theme.SurfaceHighlight
-        priorityBtn.TextColor3 = stealPriorityEnabled and Color3.new(0,0,0) or Theme.TextPrimary
-
-        if instantStealBtn then
-            instantStealBtn.Text = instantStealEnabled and "INSTANT STEAL: ON" or "INSTANT STEAL: OFF"
-            instantStealBtn.BackgroundColor3 = instantStealEnabled and Theme.Accent1 or Theme.SurfaceHighlight
-            instantStealBtn.TextColor3 = instantStealEnabled and Color3.new(0,0,0) or Theme.TextPrimary
         end
 
         if selectedTargetUID and allPets then
@@ -2569,164 +2460,8 @@ task.spawn(function()
         autoStealEnabled = true
         updateUI(true, get_all_pets())
     end
-    
-    enableBtn.MouseButton1Click:Connect(function()
-        autoStealEnabled = true
-        SharedState.ListNeedsRedraw = false
-        updateUI(true, get_all_pets())
-    end)
-    
-    nearestBtn.MouseButton1Click:Connect(function()
-        stealNearestEnabled = not stealNearestEnabled
-        if stealNearestEnabled then stealHighestEnabled = false; stealPriorityEnabled = false; State.manualTargetEnabled = false end
-        Config.StealNearest = stealNearestEnabled; Config.StealHighest = stealHighestEnabled; Config.StealPriority = stealPriorityEnabled
-        SaveConfig()
-        SharedState.ListNeedsRedraw = false; updateUI(autoStealEnabled, get_all_pets())
-    end)
 
-    highestBtn.MouseButton1Click:Connect(function()
-        stealHighestEnabled = not stealHighestEnabled
-        if stealHighestEnabled then stealNearestEnabled = false; stealPriorityEnabled = false; State.manualTargetEnabled = false end
-        Config.StealNearest = stealNearestEnabled; Config.StealHighest = stealHighestEnabled; Config.StealPriority = stealPriorityEnabled
-        SaveConfig()
-        SharedState.ListNeedsRedraw = false; updateUI(autoStealEnabled, get_all_pets())
-    end)
-
-    priorityBtn.MouseButton1Click:Connect(function()
-        stealPriorityEnabled = not stealPriorityEnabled
-        if stealPriorityEnabled then stealNearestEnabled = false; stealHighestEnabled = false; State.manualTargetEnabled = false end
-        Config.StealNearest = stealNearestEnabled; Config.StealHighest = stealHighestEnabled; Config.StealPriority = stealPriorityEnabled
-        SaveConfig()
-        SharedState.ListNeedsRedraw = false; updateUI(autoStealEnabled, get_all_pets())
-    end)
-
-    -- Expose steal mode state + toggle for the mini bar
-    SharedState.GetStealModes = function()
-        return stealNearestEnabled, stealHighestEnabled, stealPriorityEnabled
-    end
-    SharedState.SetStealMode = function(mode)
-        if mode == "nearest" then
-            stealNearestEnabled = not stealNearestEnabled
-            if stealNearestEnabled then stealHighestEnabled = false; stealPriorityEnabled = false; State.manualTargetEnabled = false end
-        elseif mode == "highest" then
-            stealHighestEnabled = not stealHighestEnabled
-            if stealHighestEnabled then stealNearestEnabled = false; stealPriorityEnabled = false; State.manualTargetEnabled = false end
-        elseif mode == "priority" then
-            stealPriorityEnabled = not stealPriorityEnabled
-            if stealPriorityEnabled then stealNearestEnabled = false; stealHighestEnabled = false; State.manualTargetEnabled = false end
-        end
-        Config.StealNearest = stealNearestEnabled; Config.StealHighest = stealHighestEnabled; Config.StealPriority = stealPriorityEnabled
-        SaveConfig()
-        SharedState.ListNeedsRedraw = false
-        updateUI(autoStealEnabled, get_all_pets())
-        if SharedState._refreshMiniModeBar then pcall(SharedState._refreshMiniModeBar) end
-    end
-
-    -- ── Mini mode bar (parented to screenGui to bypass frame.ClipsDescendants) ──
-    local miniBar = Instance.new("Frame", screenGui)
-    miniBar.Name = "MiniModeBar"
-    miniBar.Size = UDim2.new(0, 276, 0, 30)
-    miniBar.BackgroundColor3 = Theme.Surface
-    miniBar.BackgroundTransparency = 0.08
-    miniBar.BorderSizePixel = 0
-    Instance.new("UICorner", miniBar).CornerRadius = UDim.new(0, 8)
-    local miniBarStroke = Instance.new("UIStroke", miniBar)
-    miniBarStroke.Color = Theme.Accent2; miniBarStroke.Thickness = 1.2; miniBarStroke.Transparency = 0.4
-
-    local miniLayout = Instance.new("UIListLayout", miniBar)
-    miniLayout.FillDirection = Enum.FillDirection.Horizontal
-    miniLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    miniLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    miniLayout.Padding = UDim.new(0, 4)
-    local miniPad = Instance.new("UIPadding", miniBar)
-    miniPad.PaddingLeft = UDim.new(0, 6); miniPad.PaddingRight = UDim.new(0, 6)
-
-    -- Position the bar just below the autosteal frame and keep it in sync as frame moves
-    local function syncMiniBarPos()
-        local ap = frame.AbsolutePosition
-        local as = frame.AbsoluteSize
-        miniBar.Position = UDim2.new(0, ap.X, 0, ap.Y + as.Y + 4)
-    end
-    -- Wait one frame for AbsolutePosition to be valid
-    task.defer(syncMiniBarPos)
-    frame:GetPropertyChangedSignal("AbsolutePosition"):Connect(syncMiniBarPos)
-    frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(syncMiniBarPos)
-    frame:GetPropertyChangedSignal("Visible"):Connect(function() miniBar.Visible = frame.Visible end)
-
-    local function makeMiniBtn(label)
-        local b = Instance.new("TextButton", miniBar)
-        b.Size = UDim2.new(0, 82, 0, 22)
-        b.AutoButtonColor = false
-        b.Text = label; b.Font = Enum.Font.GothamBold; b.TextSize = 10
-        b.BorderSizePixel = 0
-        b.BackgroundColor3 = Theme.SurfaceHighlight; b.TextColor3 = Theme.TextPrimary
-        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-        local s = Instance.new("UIStroke", b); s.Thickness = 1.2; s.Transparency = 0.5; s.Color = Theme.Accent2
-        b.MouseEnter:Connect(function() if b.BackgroundColor3 ~= Theme.Accent1 then b.BackgroundTransparency = 0.15 end end)
-        b.MouseLeave:Connect(function() b.BackgroundTransparency = 0 end)
-        return b, s
-    end
-
-    local miniNearest, miniNearestStroke = makeMiniBtn("NEAREST")
-    local miniHighest, miniHighestStroke = makeMiniBtn("HIGHEST")
-    local miniPriority, miniPriorityStroke = makeMiniBtn("PRIORITY")
-
-    local function refreshMiniBar()
-        local n, h, p = SharedState.GetStealModes()
-        miniNearest.BackgroundColor3 = n and Theme.Accent1 or Theme.SurfaceHighlight
-        miniNearest.TextColor3 = n and Color3.new(0,0,0) or Theme.TextPrimary
-        miniNearestStroke.Color = n and Theme.Accent1 or Theme.Accent2
-        miniHighest.BackgroundColor3 = h and Theme.Accent1 or Theme.SurfaceHighlight
-        miniHighest.TextColor3 = h and Color3.new(0,0,0) or Theme.TextPrimary
-        miniHighestStroke.Color = h and Theme.Accent1 or Theme.Accent2
-        miniPriority.BackgroundColor3 = p and Theme.Accent1 or Theme.SurfaceHighlight
-        miniPriority.TextColor3 = p and Color3.new(0,0,0) or Theme.TextPrimary
-        miniPriorityStroke.Color = p and Theme.Accent1 or Theme.Accent2
-    end
-    SharedState._refreshMiniModeBar = refreshMiniBar
-    refreshMiniBar()
-
-    miniNearest.MouseButton1Click:Connect(function() SharedState.SetStealMode("nearest") end)
-    miniHighest.MouseButton1Click:Connect(function() SharedState.SetStealMode("highest") end)
-    miniPriority.MouseButton1Click:Connect(function() SharedState.SetStealMode("priority") end)
-    -- ── End mini mode bar ──
-
-    local customizePriorityBtn = Instance.new("TextButton", toggleBtnContainer)
-    customizePriorityBtn.Size = UDim2.new(1,0,0,24); customizePriorityBtn.Position = UDim2.new(0,0,0,92)
-    customizePriorityBtn.BackgroundColor3 = Theme.Accent2
-    customizePriorityBtn.Text = "CUSTOMIZE PRIORITY"; customizePriorityBtn.Font = Enum.Font.GothamBold
-    customizePriorityBtn.TextSize = 10; customizePriorityBtn.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", customizePriorityBtn).CornerRadius = UDim.new(0, 6)
-    customizePriorityBtn.Visible = true
-    
-    customizePriorityBtn.MouseButton1Click:Connect(function()
-        local priorityGui = PlayerGui:FindFirstChild("PriorityListGUI")
-        if priorityGui then
-            priorityGui.Enabled = not priorityGui.Enabled
-            if priorityGui.Enabled and SharedState.RefreshPriorityGUI then SharedState.RefreshPriorityGUI() end
-        end
-    end)
-
-    local instantStealBtn = Instance.new("TextButton", toggleBtnContainer)
-    instantStealBtn.Size = UDim2.new(1,0,0,24*uiScale); instantStealBtn.Position = UDim2.new(0,0,0,116*uiScale)
-    instantStealBtn.BackgroundColor3 = instantStealEnabled and Theme.Accent1 or Theme.SurfaceHighlight
-    instantStealBtn.Text = instantStealEnabled and "INSTANT STEAL: ON" or "INSTANT STEAL: OFF"; instantStealBtn.Font = Enum.Font.GothamBold
-    instantStealBtn.TextSize = 10*uiScale; instantStealBtn.TextColor3 = instantStealEnabled and Color3.new(0,0,0) or Theme.TextPrimary
-    Instance.new("UICorner", instantStealBtn).CornerRadius = UDim.new(0, 6)
-
-    instantStealBtn.MouseButton1Click:Connect(function()
-        instantStealEnabled = not instantStealEnabled
-        if not instantStealEnabled then
-            instantStealReady = false
-            instantStealDidInit = false
-        end
-        Config.InstantSteal = instantStealEnabled
-        SaveConfig()
-        instantStealBtn.Text = instantStealEnabled and "INSTANT STEAL: ON" or "INSTANT STEAL: OFF"
-        instantStealBtn.BackgroundColor3 = instantStealEnabled and Theme.Accent1 or Theme.SurfaceHighlight
-        instantStealBtn.TextColor3 = instantStealEnabled and Color3.new(0,0,0) or Theme.TextPrimary
-        SharedState.ListNeedsRedraw = false; updateUI(autoStealEnabled, get_all_pets())
-    end)
+    -- ── STEAL FUNCTIONS ────────────────────────────────────────────────────
 
     local function findProximityPromptForAnimal(animalData)
         if not animalData then return nil end
@@ -3631,7 +3366,7 @@ runAutoSnipe = function()
     local startPos = hrp.Position
     local distance = (targetPos - startPos).Magnitude
     local steps = math.max(20, math.floor(distance / 3))
-    local delay = 0.015
+    local delay = 0.010
     
     for i = 1, steps do
         local alpha = i / steps
